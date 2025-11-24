@@ -2,28 +2,34 @@ pipeline {
     agent any
 
     stages {
-        stage('Spy Files') {
+        stage('Check 2022 Folder') {
             steps {
-                echo '=== ДИВИМОСЬ ЩО Є У ПАПЦІ 2019 ==='
-                // Ця команда покаже, яка версія стоїть у папці 2019 (Community, Enterprise чи інша)
+                bat 'dir "C:\\Program Files\\Microsoft Visual Studio\\2022"'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat '"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64'
+            }
+        }
+
+        stage('Test') {
+            steps {
                 script {
                     try {
-                        bat 'dir "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019"'
+                        bat 'x64\\Debug\\test_repos.exe --gtest_output=xml:test_report.xml'
                     } catch (err) {
-                        echo 'Папки 2019 не знайдено'
-                    }
-                }
-                
-                echo '=== ДИВИМОСЬ ЩО Є У ПАПЦІ Program Files (x64) ==='
-                // Перевіримо, що є у новій папці
-                script {
-                    try {
-                        bat 'dir "C:\\Program Files\\Microsoft Visual Studio"'
-                    } catch (err) {
-                        echo 'Папки VS x64 не знайдено'
+                        echo 'Tests failed'
                     }
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            junit 'test_report.xml'
         }
     }
 }

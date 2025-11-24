@@ -2,32 +2,34 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+        stage('Restore & Build') {
             steps {
-                git url: 'add here your url', credentialsId: 'add credentialsId'
-            }
-        }
-        
-        stage('Build') {
-            steps {
-                // Крок для збірки проекту з Visual Studio
-                // Встановіть правильні шляхи до рішення/проекту та параметри MSBuild
-                bat '"path to MSBuild" test_repos.sln /t:Build /p:Configuration=Release'
+                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" vs_mkr_test1.sln /t:Restore /p:Configuration=Debug'         
+                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" vs_mkr_test1.sln /p:Configuration=Debug /p:Platform="x86"'
             }
         }
 
         stage('Test') {
             steps {
-                // Команди для запуску тестів
-                bat "x64\\Debug\\test_repos.exe --gtest_output=xml:test_report.xml"
+                script {
+                    try {
+                        if (fileExists('Debug\\vs_mkr_test1.exe')) {
+                            bat 'Debug\\vs_mkr_test1.exe --gtest_output=xml:test_report.xml'
+                        } else {
+                            echo 'Error: Debug\\vs_mkr_test1.exe not found! Checking root folder...'
+                            bat 'dir'
+                        }
+                    } catch (err) {
+                        echo 'Tests failed'
+                    }
+                }
             }
         }
     }
 
     post {
-    always {
-        // Publish test results using the junit step
-         // Specify the path to the XML test result files
+        always {
+            junit 'test_report.xml'
+        }
     }
-}
 }

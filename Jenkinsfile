@@ -2,34 +2,26 @@ pipeline {
     agent any
 
     stages {
-        stage('Check 2022 Folder') {
+        stage('Find MSBuild') {
             steps {
-                bat 'dir "C:\\Program Files\\Microsoft Visual Studio\\2022"'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                bat '"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64'
-            }
-        }
-
-        stage('Test') {
-            steps {
+                echo '=== ПОЧИНАЄМО ГЛОБАЛЬНИЙ ПОШУК ==='
                 script {
                     try {
-                        bat 'x64\\Debug\\test_repos.exe --gtest_output=xml:test_report.xml'
+                        echo '--- Check vswhere ---'
+                        bat '"C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath'
                     } catch (err) {
-                        echo 'Tests failed'
+                        echo 'vswhere failed'
                     }
                 }
+                script {
+                    echo '--- Search in x86 ---'
+                    bat 'dir /s /b "C:\\Program Files (x86)\\MSBuild.exe"'
+                }
+                script {
+                    echo '--- Search in x64 ---'
+                    bat 'dir /s /b "C:\\Program Files\\MSBuild.exe"'
+                }
             }
-        }
-    }
-
-    post {
-        always {
-            junit 'test_report.xml'
         }
     }
 }

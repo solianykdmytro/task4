@@ -2,13 +2,29 @@ pipeline {
     agent any
 
     stages {
-        stage('Debug File System') {
+        stage('Restore & Build') {
             steps {
-                echo '=== SHOWING ALL FILES IN REPOSITORY ==='
-                // Ця команда покаже ВСІ файли у всіх папках
-                bat 'dir /s /b'
-                echo '======================================='
+                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /t:Restore /p:Configuration=Debug /p:Platform=x64'
+                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64'
             }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    try {
+                        bat 'x64\\Debug\\test_repos.exe --gtest_output=xml:test_report.xml'
+                    } catch (err) {
+                        echo 'Tests failed'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit 'test_report.xml'
         }
     }
 }

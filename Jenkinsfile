@@ -4,8 +4,8 @@ pipeline {
     stages {
         stage('Restore & Build') {
             steps {
-                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" vs_mkr_test1.sln /t:Restore /p:Configuration=Debug'         
-                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" vs_mkr_test1.sln /p:Configuration=Debug /p:Platform="x86"'
+                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" vs_mkr_test1\\vs_mkr_test1.sln /t:Restore /p:Configuration=Debug'
+                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" vs_mkr_test1\\vs_mkr_test1.sln /p:Configuration=Debug /p:Platform="x86"'
             }
         }
 
@@ -13,12 +13,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        if (fileExists('Debug\\vs_mkr_test1.exe')) {
-                            bat 'Debug\\vs_mkr_test1.exe --gtest_output=xml:test_report.xml'
-                        } else {
-                            echo 'Error: Debug\\vs_mkr_test1.exe not found! Checking root folder...'
-                            bat 'dir'
-                        }
+                        bat 'vs_mkr_test1\\Debug\\vs_mkr_test1.exe --gtest_output=xml:test_report.xml'
                     } catch (err) {
                         echo 'Tests failed'
                     }

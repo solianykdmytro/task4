@@ -17,9 +17,8 @@ pipeline {
 
         stage('Build') {
             steps {
-                // МИ ДОДАЛИ: /p:WindowsTargetPlatformVersion=10.0
-                // Це вирішує помилку MSB8036
-                bat 'call "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\Tools\\VsDevCmd.bat" && msbuild test_repos.sln /p:Configuration=Debug /p:Platform=x64 /p:WindowsTargetPlatformVersion=10.0'
+                // МИ ВКАЗАЛИ ТОЧНУ ВЕРСІЮ SDK З ТВОГО СКРІНШОТУ: 10.0.26100.0
+                bat 'call "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\Tools\\VsDevCmd.bat" && msbuild test_repos.sln /p:Configuration=Debug /p:Platform=x64 /p:WindowsTargetPlatformVersion=10.0.26100.0'
             }
         }
 

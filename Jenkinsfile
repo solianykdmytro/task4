@@ -5,24 +5,45 @@ pipeline {
         stage('Restore NuGet') {
             steps {
                 script {
-                    // 1. Скачуємо nuget.exe (щоб точно був)
+                    // 1. Завантажуємо nuget
                     bat 'powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile nuget.exe"'
                     
-                    // 2. Відновлюємо пакети (ігноруємо помилки, якщо пакети вже є)
+                    // 2. Відновлюємо пакети (ігноруємо помилку, якщо Visual Studio ще "глючить", бо пакети вже є)
                     try {
                         bat 'nuget.exe restore test_repos.sln'
                     } catch (Exception e) {
-                        echo 'NuGet restore warning (continuing...)'
+                        echo 'Warning: NuGet restore had issues, but attempting build anyway...'
                     }
                 }
             }
         }
 
-        stage('Build') {
+        stage('Auto-Build') {
             steps {
-                // ВИКОРИСТОВУЄМО НАДІЙНИЙ ШЛЯХ (BuildTools)
-                // Ми бачили цю папку на твоєму скріншоті, вона має працювати
-                bat '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64'
+                script {
+                    echo "--- АВТОМАТИЧНИЙ ПОШУК VISUAL STUDIO ---"
+                    
+                    // Шлях до vswhere (стандартний інструмент Microsoft)
+                    def vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+                    
+                    // Команда знайде шлях до найновішого MSBuild.exe
+                    def cmd = "\"${vswhere}\" -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\MSBuild.exe"
+                    
+                    // Виконуємо пошук
+                    def msbuildPath = bat(returnStdout: true, script: cmd).trim()
+                    // Беремо останній рядок (іноді Jenkins додає сміття в лог)
+                    msbuildPath = msbuildPath.readLines().last()
+
+                    if (msbuildPath && fileExists(msbuildPath)) {
+                        echo "Знайдено MSBuild: ${msbuildPath}"
+                        // Запускаємо збірку
+                        bat "\"${msbuildPath}\" test_repos.sln /p:Configuration=Debug /p:Platform=x64"
+                    } else {
+                        // План Б: Якщо vswhere не впорався, пробуємо твою папку 18 напряму
+                        echo "vswhere не знайшов шлях, пробуємо папку 18..."
+                        bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64'
+                    }
+                }
             }
         }
 
@@ -30,11 +51,9 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Запускаємо тести і генеруємо звіт
                         bat 'x64\\Debug\\test_repos.exe --gtest_output=xml:test_report.xml'
                     } catch (err) {
-                        // Навіть якщо тести впадуть, ми хочемо бачити звіт
-                        echo 'Tests finished'
+                        echo 'Tests failed, but report generated'
                     }
                 }
             }
@@ -43,7 +62,6 @@ pipeline {
 
     post {
         always {
-            // Публікуємо результати, щоб з'явився графік
             junit 'test_report.xml'
             cleanWs()
         }

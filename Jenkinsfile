@@ -1,56 +1,30 @@
 pipeline {
     agent any
 
-    environment {
-        NUGET_PATH = "${WORKSPACE}\\nuget.exe"
-        VS_PATH = "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe"
-        SOLUTION_FILE = "test_repos.sln"
-        TEST_EXECUTABLE = "x64\\Debug\\test_repos.exe"
-    }
-
     stages {
-        stage('Restore NuGet Packages') {
+        stage('Find MSBuild') {
             steps {
+                echo '=== ПОЧИНАЄМО ПОШУК ==='
+                
                 script {
+                    // Шукаємо в папці Program Files (x86) - тут часто бувають BuildTools
+                    echo '--- Searching in Program Files (x86) ---'
                     try {
-                        bat """
-                            if not exist "${NUGET_PATH}" (
-                                powershell -Command "Invoke-WebRequest -Uri 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe' -OutFile '${NUGET_PATH}'"
-                            )
-                        """
-                        bat "\"${NUGET_PATH}\" restore \"${SOLUTION_FILE}\""
+                        // Ця команда знайде всі файли MSBuild.exe, навіть сховані
+                        bat 'dir "C:\\Program Files (x86)\\Microsoft Visual Studio\\MSBuild.exe" /s /b'
                     } catch (Exception e) {
-                        echo "NuGet restore skipped"
+                        echo 'Нічого не знайдено в x86'
+                    }
+
+                    // Шукаємо в папці Program Files (x64)
+                    echo '--- Searching in Program Files ---'
+                    try {
+                        bat 'dir "C:\\Program Files\\Microsoft Visual Studio\\MSBuild.exe" /s /b'
+                    } catch (Exception e) {
+                        echo 'Нічого не знайдено в x64'
                     }
                 }
             }
-        }
-
-        stage('Build') {
-            steps {
-                script {
-                    bat "\"${VS_PATH}\" \"${SOLUTION_FILE}\" /p:Configuration=Debug /p:Platform=x64"
-                }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                script {
-                    try {
-                        bat "\"${TEST_EXECUTABLE}\" --gtest_output=xml:test_report.xml"
-                    } catch (Exception e) {
-                        echo "Tests failed but continuing"
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            junit 'test_report.xml'
-            cleanWs()
         }
     }
 }

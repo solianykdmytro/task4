@@ -17,8 +17,9 @@ pipeline {
 
         stage('Build') {
             steps {
-                // МИ ВКАЗАЛИ ТОЧНУ ВЕРСІЮ SDK З ТВОГО СКРІНШОТУ: 10.0.26100.0
-                bat 'call "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\Tools\\VsDevCmd.bat" && msbuild test_repos.sln /p:Configuration=Debug /p:Platform=x64 /p:WindowsTargetPlatformVersion=10.0.26100.0'
+                // МИ ДОДАЛИ: -arch=amd64 -host_arch=amd64
+                // Це підключить правильний компілятор CL.exe
+                bat 'call "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\Tools\\VsDevCmd.bat" -arch=amd64 -host_arch=amd64 && msbuild test_repos.sln /p:Configuration=Debug /p:Platform=x64 /p:WindowsTargetPlatformVersion=10.0.26100.0'
             }
         }
 

@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         NUGET_PATH = "${WORKSPACE}\\nuget.exe"
-        VS_PATH = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"
+        VS_PATH = "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe"
         SOLUTION_FILE = "test_repos.sln"
         TEST_EXECUTABLE = "x64\\Debug\\test_repos.exe"
     }

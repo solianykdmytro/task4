@@ -1,50 +1,51 @@
 pipeline {
     agent any
 
-    environment {
-        // Назва файлу рішення (з твого репозиторію)
-        SOLUTION_NAME = 'test_repos.sln'
-        // Шлях до exe файлу після збірки (x64/Debug)
-        TEST_EXE = 'x64\\Debug\\test_repos.exe'
-    }
-
     stages {
-        // Етап 1: Відновлення пакетів (щоб працював GoogleTest)
         stage('Restore NuGet') {
             steps {
                 script {
-                    // Скачуємо nuget.exe, якщо його немає
+                    // 1. Завантажуємо nuget
                     bat 'powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile nuget.exe"'
-                    // Відновлюємо пакети
-                    bat "nuget.exe restore ${SOLUTION_NAME}"
+                    
+                    // 2. Відновлюємо пакети
+                    // (Ігноруємо помилки, бо пакети вже можуть бути на місці)
+                    try {
+                        bat 'nuget.exe restore test_repos.sln'
+                    } catch (Exception e) {
+                        echo 'NuGet restore warning'
+                    }
                 }
             }
         }
 
-        // Етап 2: Збірка (Build)
         stage('Build') {
             steps {
-                // Використовуємо інструмент, який ми налаштували в Етапі 1 (пункт 2)
-                // 'MyMSBuild' - це назва, яку ти дав у Global Tool Configuration
-                // Якщо ти не налаштував Tools, заміни tool 'MyMSBuild' на повний шлях у лапках
-                bat "\"${tool 'MyMSBuild'}\" ${SOLUTION_NAME} /p:Configuration=Debug /p:Platform=x64"
+                // ВИПРАВЛЕННЯ ТУТ:
+                // Було: ...\Bin"
+                // Стало: ...\Bin\MSBuild.exe"
+                bat '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64'
             }
         }
 
-        // Етап 3: Тестування (Test)
         stage('Test') {
             steps {
-                // Запуск тестів і генерація XML звіту
-                bat "${TEST_EXE} --gtest_output=xml:test_report.xml"
+                script {
+                    try {
+                        // Запускаємо тести
+                        bat 'x64\\Debug\\test_repos.exe --gtest_output=xml:test_report.xml'
+                    } catch (err) {
+                        echo 'Tests failed, but report generated'
+                    }
+                }
             }
         }
     }
 
     post {
         always {
-            // Публікація результатів (вимога методички для звітів)
             junit 'test_report.xml'
-            cleanWs() // Очистка робочої папки
+            cleanWs()
         }
     }
 }

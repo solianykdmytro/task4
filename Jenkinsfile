@@ -17,9 +17,9 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Використовуємо VsDevCmd.bat для ініціалізації середовища VS 18
-                // Це має виправити помилку "Failed to locate: CL.exe"
-                bat 'call "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\Tools\\VsDevCmd.bat" && msbuild test_repos.sln /p:Configuration=Debug /p:Platform=x64'
+                // МИ ДОДАЛИ: /p:WindowsTargetPlatformVersion=10.0
+                // Це вирішує помилку MSB8036
+                bat 'call "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\Tools\\VsDevCmd.bat" && msbuild test_repos.sln /p:Configuration=Debug /p:Platform=x64 /p:WindowsTargetPlatformVersion=10.0'
             }
         }
 

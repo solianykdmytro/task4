@@ -1,69 +1,50 @@
 pipeline {
     agent any
 
+    environment {
+        // Назва файлу рішення (з твого репозиторію)
+        SOLUTION_NAME = 'test_repos.sln'
+        // Шлях до exe файлу після збірки (x64/Debug)
+        TEST_EXE = 'x64\\Debug\\test_repos.exe'
+    }
+
     stages {
+        // Етап 1: Відновлення пакетів (щоб працював GoogleTest)
         stage('Restore NuGet') {
             steps {
                 script {
-                    // 1. Завантажуємо nuget
+                    // Скачуємо nuget.exe, якщо його немає
                     bat 'powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile nuget.exe"'
-                    
-                    // 2. Відновлюємо пакети (ігноруємо помилку, якщо Visual Studio ще "глючить", бо пакети вже є)
-                    try {
-                        bat 'nuget.exe restore test_repos.sln'
-                    } catch (Exception e) {
-                        echo 'Warning: NuGet restore had issues, but attempting build anyway...'
-                    }
+                    // Відновлюємо пакети
+                    bat "nuget.exe restore ${SOLUTION_NAME}"
                 }
             }
         }
 
-        stage('Auto-Build') {
+        // Етап 2: Збірка (Build)
+        stage('Build') {
             steps {
-                script {
-                    echo "--- АВТОМАТИЧНИЙ ПОШУК VISUAL STUDIO ---"
-                    
-                    // Шлях до vswhere (стандартний інструмент Microsoft)
-                    def vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe"
-                    
-                    // Команда знайде шлях до найновішого MSBuild.exe
-                    def cmd = "\"${vswhere}\" -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\MSBuild.exe"
-                    
-                    // Виконуємо пошук
-                    def msbuildPath = bat(returnStdout: true, script: cmd).trim()
-                    // Беремо останній рядок (іноді Jenkins додає сміття в лог)
-                    msbuildPath = msbuildPath.readLines().last()
-
-                    if (msbuildPath && fileExists(msbuildPath)) {
-                        echo "Знайдено MSBuild: ${msbuildPath}"
-                        // Запускаємо збірку
-                        bat "\"${msbuildPath}\" test_repos.sln /p:Configuration=Debug /p:Platform=x64"
-                    } else {
-                        // План Б: Якщо vswhere не впорався, пробуємо твою папку 18 напряму
-                        echo "vswhere не знайшов шлях, пробуємо папку 18..."
-                        bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64'
-                    }
-                }
+                // Використовуємо інструмент, який ми налаштували в Етапі 1 (пункт 2)
+                // 'MyMSBuild' - це назва, яку ти дав у Global Tool Configuration
+                // Якщо ти не налаштував Tools, заміни tool 'MyMSBuild' на повний шлях у лапках
+                bat "\"${tool 'MyMSBuild'}\" ${SOLUTION_NAME} /p:Configuration=Debug /p:Platform=x64"
             }
         }
 
+        // Етап 3: Тестування (Test)
         stage('Test') {
             steps {
-                script {
-                    try {
-                        bat 'x64\\Debug\\test_repos.exe --gtest_output=xml:test_report.xml'
-                    } catch (err) {
-                        echo 'Tests failed, but report generated'
-                    }
-                }
+                // Запуск тестів і генерація XML звіту
+                bat "${TEST_EXE} --gtest_output=xml:test_report.xml"
             }
         }
     }
 
     post {
         always {
+            // Публікація результатів (вимога методички для звітів)
             junit 'test_report.xml'
-            cleanWs()
+            cleanWs() // Очистка робочої папки
         }
     }
 }

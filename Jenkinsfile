@@ -2,23 +2,19 @@ pipeline {
     agent any
 
     stages {
-        stage('Restore NuGet Packages') {
+        stage('Setup NuGet') {
             steps {
-                script {
-                    // Завантажуємо nuget.exe, якщо його немає (для надійності)
-                    def nugetPath = "${WORKSPACE}\\nuget.exe"
-                    if (!fileExists(nugetPath)) {
-                        powershell -Command "Invoke-WebRequest -Uri 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe' -OutFile '${nugetPath}'"
-                    }
-                    // Відновлюємо пакети
-                    bat "\"${nugetPath}\" restore \"test_repos.sln\""
-                }
+                // Завантажуємо nuget.exe
+                bat 'powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile nuget.exe"'
+                
+                // Відновлюємо пакети
+                bat 'nuget.exe restore test_repos.sln'
             }
         }
 
         stage('Build') {
             steps {
-                // Твій шлях до папки 18
+                // Будуємо через папку 18 (де ти тільки що встановив C++)
                 bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64'
             }
         }
@@ -27,7 +23,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Шлях до exe файлу
+                        // Запускаємо тести
                         bat 'x64\\Debug\\test_repos.exe --gtest_output=xml:test_report.xml'
                     } catch (err) {
                         echo 'Tests failed'

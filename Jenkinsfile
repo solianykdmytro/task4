@@ -17,9 +17,8 @@ pipeline {
 
         stage('Build') {
             steps {
-                // МАГІЧНИЙ РЯДОК:
-                // 1. call "...VsDevCmd.bat" - це налаштовує змінні середовища саме для версії 18
-                // 2. && msbuild ... - це запускає збірку вже в правильному оточенні
+                // Використовуємо VsDevCmd.bat для ініціалізації середовища VS 18
+                // Це має виправити помилку "Failed to locate: CL.exe"
                 bat 'call "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\Tools\\VsDevCmd.bat" && msbuild test_repos.sln /p:Configuration=Debug /p:Platform=x64'
             }
         }
@@ -36,3 +35,11 @@ pipeline {
             }
         }
     }
+
+    post {
+        always {
+            junit 'test_report.xml'
+            cleanWs()
+        }
+    }
+}

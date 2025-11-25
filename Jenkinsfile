@@ -9,7 +9,7 @@ pipeline {
                     try {
                         bat 'nuget.exe restore test_repos.sln'
                     } catch (Exception e) {
-                        echo 'NuGet restore warning'
+                        echo 'NuGet warning'
                     }
                 }
             }
@@ -17,9 +17,9 @@ pipeline {
 
         stage('Build') {
             steps {
-                // ДОДАНО: /p:WindowsTargetPlatformVersion=10.0
-                // Це змусить MSBuild взяти стандартну встановлену версію SDK
-                bat '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64 /p:WindowsTargetPlatformVersion=10.0'
+                // ПОВЕРТАЄМОСЯ ДО ВЕРСІЇ 18 (Community), де ти встановив C++
+                // Додаємо /p:WindowsTargetPlatformVersion=10.0 щоб уникнути проблем з SDK
+                bat '"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" test_repos.sln /p:Configuration=Debug /p:Platform=x64 /p:WindowsTargetPlatformVersion=10.0'
             }
         }
 
